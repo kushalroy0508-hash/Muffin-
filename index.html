@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ten August</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--ink:rgba(255,241,236,.92);box-sizing:border-box}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-snap-type:y mandatory;background:#000;height:100%;overscroll-behavior:none}
+body{background:#000;color:var(--ink);font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;-webkit-font-smoothing:antialiased}
+section{height:100vh;height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;position:relative;overflow:hidden}
+.stage{position:absolute;inset:0;will-change:opacity}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.msg{position:absolute;left:0;right:0;padding:0 8vw;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.top{top:calc(5% + env(safe-area-inset-top,0px));height:42%}
+.mid{top:0;bottom:0;padding-top:4vh}
+.msg p{font-style:italic;font-weight:300;font-size:clamp(1.02rem,3.3vw,1.5rem);line-height:1.85;letter-spacing:.025em;margin-bottom:1.05em;max-width:34em;opacity:0;transform:translateY(14px);filter:blur(3px);transition:opacity 2.8s ease,transform 2.8s ease,filter 2.8s ease;text-shadow:0 0 24px rgba(0,0,0,.6)}
+.msg p.on{opacity:1;transform:none;filter:none}
+.msg p.date{font-size:clamp(1.3rem,4vw,1.9rem);letter-spacing:.08em}
+.frag{position:absolute;font-style:italic;font-size:clamp(.8rem,2.4vw,1.05rem);color:#c8c8d2;opacity:0;pointer-events:none;white-space:nowrap;animation:fr 3.4s ease-in-out forwards;letter-spacing:.05em}
+@keyframes fr{0%{opacity:0;filter:blur(4px)}35%{opacity:.26;filter:blur(.4px)}100%{opacity:0;filter:blur(5px)}}
+#black{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
+#thanks{position:absolute;left:0;right:0;bottom:calc(3.2vh + env(safe-area-inset-bottom,0px));text-align:center;font-style:italic;font-size:.72rem;letter-spacing:.14em;color:rgba(255,235,225,.6);opacity:0}
+#hint{position:fixed;left:50%;bottom:calc(2.4vh + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;transition:opacity 2s;pointer-events:none;z-index:5;font-style:italic;font-size:.66rem;letter-spacing:.3em;color:rgba(255,255,255,.45)}
+#hint.on{opacity:1}
+#hint i{display:block;width:1px;height:34px;background:linear-gradient(rgba(255,255,255,.55),transparent);animation:dr 2.6s ease-in-out infinite;transform-origin:top}
+@keyframes dr{0%{transform:scaleY(0);opacity:0}40%{opacity:1}100%{transform:scaleY(1);opacity:0}}
+#grain{position:fixed;inset:-50%;width:200%;height:200%;pointer-events:none;z-index:4;opacity:.11;mix-blend-mode:overlay;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");animation:gr 1.2s steps(6) infinite}
+@keyframes gr{0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-3%)}60%{transform:translate(-2%,-1%)}80%{transform:translate(3%,3%)}100%{transform:translate(0,0)}}
+</style>
+</head>
+<body>
+<section id="s1"><div class="stage"><canvas></canvas>
+<div class="msg top"><p class="date">10th August.</p><p>The best day I remember.</p><p>The day I first fell in love with you.</p><p>A day I'll carry with me,<br>and never forget.</p></div></div></section>
+
+<section id="s2"><div class="stage"><canvas></canvas>
+<div class="msg mid"><p>I overthought every little thing.</p><p>I turned small fears into big ones,<br>and doubts into answers.</p><p>Somewhere along the way,<br>my overthinking hurt something<br>that was once beautiful.</p><p>And I hate that I couldn't quiet my mind<br>before it became too loud for us.</p></div></div></section>
+
+<section id="s3"><div class="stage"><canvas></canvas>
+<div class="msg top"><p>The sun never leaves the sky out of anger.</p><p>It only knows the hour it was given.</p><p>Some lights are not put out,<br>they are only carried elsewhere.</p><p>So I open my hands,<br>and let the evening take<br>what I could never keep.</p><p>Go gently, wherever your morning finds you.</p></div>
+<div id="black"></div><div id="thanks">Thank you for being a beautiful part of my life.</div></div></section>
+
+<div id="hint"><span>SCROLL</span><i></i></div>
+<div id="grain"></div>
+
+<script>
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),lerp=(a,b,t)=>a+(b-a)*t,ease=t=>t*t*(3-2*t),R=Math.random;
+const mix=(A,B,t)=>A.map((v,i)=>lerp(v,B[i],t)),rgb=(c,a=1)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+const scenes=[...document.querySelectorAll('section')].map((el,i)=>{const c=el.querySelector('canvas');return{el,c,x:c.getContext('2d'),i,t:0,vis:false,W:0,H:0,lines:[...el.querySelectorAll('.msg p')],shown:0,ready:false,stage:el.querySelector('.stage')}});
+const cfg=[{start:13.5,step:1.9},{start:23,step:2.6},{start:19,step:3.3}];
+function resize(){for(const s of scenes){const d=Math.min(devicePixelRatio||1,2);s.W=innerWidth;s.H=innerHeight;s.c.width=s.W*d;s.c.height=s.H*d;s.x.setTransform(d,0,0,d,0,0)}}
+addEventListener('resize',resize);resize();
+new IntersectionObserver(es=>es.forEach(e=>{scenes[[...document.querySelectorAll('section')].indexOf(e.target)].vis=e.isIntersecting&&e.intersectionRatio>.5}),{threshold:[.5]}).observe&&0;
+const io=new IntersectionObserver(es=>es.forEach(e=>{const s=scenes.find(q=>q.el===e.target);s.vis=e.intersectionRatio>.45}),{threshold:[0,.45,1]});
+scenes.forEach(s=>io.observe(s.el));
+
+/* ---------- Scene 1 : the beginning ---------- */
+const fly=Array.from({length:70},()=>({x:R(),y:R(),ph:R()*6.28,sp:.4+R()*1.2,r:.6+R()*1.8}));
+function s1(s,t){const x=s.x,W=s.W,H=s.H;
+const b=ease(clamp((t-7)/6)),l=clamp((t-5)/10),gy=H*.85,cx=W/2,sh=Math.min(H*.3,270);
+let g=x.createLinearGradient(0,0,0,H);
+g.addColorStop(0,rgb([lerp(2,20,l),lerp(3,18,l),lerp(8,42,l)]));
+g.addColorStop(.75,rgb([lerp(3,110,l*.8),lerp(4,58,l*.8),lerp(10,78,l*.8)]));
+g.addColorStop(1,rgb([lerp(2,30,l),lerp(2,14,l),lerp(4,22,l)]));
+x.fillStyle=g;x.fillRect(0,0,W,H);
+// ground
+x.fillStyle='#020203';x.beginPath();x.moveTo(0,gy+14);x.quadraticCurveTo(cx,gy-16,W,gy+14);x.lineTo(W,H);x.lineTo(0,H);x.fill();
+// seed
+const sa=clamp(t/1.6)*(1-clamp((t-3.5)/2)*.85);
+if(sa>0){const sy=gy-3+Math.sin(t*2)*.6;let rg=x.createRadialGradient(cx,sy,0,cx,sy,46);rg.addColorStop(0,`rgba(255,225,160,${.7*sa})`);rg.addColorStop(1,'rgba(255,200,120,0)');x.fillStyle=rg;x.fillRect(cx-50,sy-50,100,100);x.fillStyle=`rgba(255,240,200,${sa})`;x.beginPath();x.arc(cx,sy,2.6,0,7);x.fill()}
+// stem
+const sg=ease(clamp((t-2.8)/4.2)),sw=Math.sin(t*.8)*7*sg*(.4+b),tx=cx+sw,ty=gy-sh*sg,qx=cx-16+sw*.3,qy=gy-sh*sg*.5;
+const B=u=>[(1-u)*(1-u)*cx+2*(1-u)*u*qx+u*u*tx,(1-u)*(1-u)*gy+2*(1-u)*u*qy+u*u*ty];
+if(sg>0){x.lineCap='round';x.strokeStyle=`rgba(${110},${190},${130},${.35+.65*l})`;x.lineWidth=3;x.beginPath();x.moveTo(cx,gy);x.quadraticCurveTo(qx,qy,tx,ty);x.stroke()}
+// leaves
+[[.22,1],[.4,-1],[.58,1],[.74,-1]].forEach((q,i)=>{const lg=ease(clamp((t-4.8-i*.9)/2.6));if(lg<=0||sg<q[0])return;const[px,py]=B(q[0]),L=sh*.3*lg*(1-i*.1);
+x.save();x.translate(px,py);x.scale(q[1],1);x.rotate(-.85+Math.sin(t*.9+i)*.05);
+let lgd=x.createLinearGradient(0,0,L,0);lgd.addColorStop(0,'#1d4a33');lgd.addColorStop(1,'#78b779');x.globalAlpha=.4+.6*l;x.fillStyle=lgd;
+x.beginPath();x.moveTo(0,0);x.quadraticCurveTo(L*.5,-L*.3,L,0);x.quadraticCurveTo(L*.5,L*.22,0,0);x.fill();x.restore()});
+// bloom
+if(t>6.4){x.save();x.translate(tx,ty);x.rotate(sw*.004);
+x.globalCompositeOperation='lighter';const gr=60+170*b;let hg=x.createRadialGradient(0,0,0,0,0,gr);hg.addColorStop(0,`rgba(255,170,190,${.05+.3*b})`);hg.addColorStop(1,'rgba(255,150,170,0)');x.fillStyle=hg;x.fillRect(-gr,-gr,gr*2,gr*2);x.globalCompositeOperation='source-over';
+const rings=[[7,.36,1,.95,'#9c2f5c','#e9799b','#ffc6d5'],[6,.3,.82,.95,'#b64570','#f08fab','#ffd9e3'],[5,.21,.58,.98,'#d05f86','#f7a9bf','#fff0f4']];
+rings.forEach(([n,stp,len,al,c0,c1,c2],ri)=>{const L=sh*.27*len*(.3+.7*b);for(let i=0;i<n;i++){const th=(i-(n-1)/2)*(.05+stp*b*1.0)+(ri==1?.06*b:0);
+x.save();x.rotate(th);const pg=x.createLinearGradient(0,0,0,-L);pg.addColorStop(0,c0);pg.addColorStop(.55,c1);pg.addColorStop(1,c2);x.globalAlpha=al*clamp(b*3+.4);x.fillStyle=pg;
+x.beginPath();x.moveTo(0,0);x.bezierCurveTo(-L*.4,-L*.3,-L*.36,-L*.85,0,-L);x.bezierCurveTo(L*.36,-L*.85,L*.4,-L*.3,0,0);x.fill();x.restore()}});
+x.globalAlpha=1;x.fillStyle=`rgba(255,220,140,${.5+.5*b})`;x.beginPath();x.arc(0,-2,2+3*b,0,7);x.fill();x.restore()}
+// fireflies
+x.globalCompositeOperation='lighter';const fa=clamp((t-4.5)/5);
+for(const f of fly){const px=((f.x*W+Math.sin(t*.3*f.sp+f.ph)*40)%W+W)%W,py=H*(1-((f.y+t*.006*f.sp)%1)),a=fa*(.15+.6*Math.pow(Math.sin(t*f.sp+f.ph),2));
+x.fillStyle=`rgba(255,215,170,${a*.18})`;x.beginPath();x.arc(px,py,f.r*4,0,7);x.fill();x.fillStyle=`rgba(255,235,200,${a})`;x.beginPath();x.arc(px,py,f.r,0,7);x.fill()}
+x.globalCompositeOperation='source-over'}
+
+/* ---------- Scene 2 : the mind ---------- */
+const th=Array.from({length:180},()=>({r:1.4+R()*6.4,w:(R()-.5)*2,ph:R()*6.28,f:1+R()*4,amp:R()*1.1,lp:1+R()*2,la:.15+R()*.9,off:R()*6.28,span:1+R()*3.6,wd:.5+R()*1,gray:R()<.4}));
+const words=['what if?','did I say something wrong?','why did she say that?','maybe...','what if she leaves?','does she still love me?'];
+let T2=0,nextF=3;
+function s2(s,t,dt){const x=s.x,W=s.W,H=s.H,cx=W/2,hy=H*.36,Rh=Math.min(W,H)*.055;
+const c=Math.pow(clamp(t/16),1.3),k=clamp((t-16)/3.5),fade=1-clamp((t-16.5)/4),e=clamp((t-19)/4);
+let sp=(.3+2.4*c+(Math.sin(t*.7)>.8?1.4:0)*c)*(Math.pow(1-k,2)+.02);T2+=dt*sp;
+const gl=lerp(1,.28,e);let g=x.createRadialGradient(cx,hy,0,cx,hy,Math.max(W,H)*.7);g.addColorStop(0,`rgb(${34*gl+3},${34*gl+3},${41*gl+4})`);g.addColorStop(1,'#020203');x.fillStyle=g;x.fillRect(0,0,W,H);
+// threads
+const n=180*Math.min(1,.06+c*1.1);x.lineJoin='round';
+for(let i=0;i<n;i++){const q=th[i],life=.35+.65*Math.abs(Math.sin(t*.5+q.off*3)),al=life*fade*Math.min(1,(n-i)/6+.2);if(al<.01)continue;
+x.strokeStyle=q.gray?`rgba(120,120,132,${.32*al})`:`rgba(0,0,0,${.75*al})`;x.lineWidth=q.wd;x.beginPath();
+for(let j=0;j<=44;j++){const a=q.ph+j/44*q.span+T2*q.w,rr=(q.r+Math.sin(a*q.f+T2*.7)*q.amp)*Rh,px=cx+Math.cos(a)*rr*1.2+Math.cos(a*q.lp*3+T2)*q.la*Rh,py=hy+Math.sin(a)*rr*.85+Math.sin(a*q.lp*3+T2*1.1)*q.la*Rh;j?x.lineTo(px,py):x.moveTo(px,py)}x.stroke()}
+// figure
+const br=Math.sin(t*.7)*1.2,al=lerp(1,.4,e);x.save();x.globalAlpha=al;x.fillStyle='#000';x.strokeStyle='rgba(255,255,255,.07)';x.lineWidth=1;
+x.beginPath();x.arc(cx,hy+br,Rh,0,7);x.fill();x.stroke();
+const ny=hy+Rh*1.05+br,sw=Rh*3;x.beginPath();x.moveTo(cx-Rh*.45,ny);x.quadraticCurveTo(cx-Rh*.5,ny+Rh*.6,cx-sw,ny+Rh*1.5);x.lineTo(cx-sw*1.05,H+4);x.lineTo(cx+sw*1.05,H+4);x.lineTo(cx+sw,ny+Rh*1.5);x.quadraticCurveTo(cx+Rh*.5,ny+Rh*.6,cx+Rh*.45,ny);x.closePath();x.fill();x.stroke();x.restore();
+// warm horizon at the end
+const w=clamp((t-40)/9);if(w>0){let hg=x.createLinearGradient(0,H*.6,0,H);hg.addColorStop(0,'rgba(255,140,80,0)');hg.addColorStop(1,`rgba(255,150,90,${.32*w})`);x.fillStyle=hg;x.fillRect(0,H*.6,W,H*.4)}
+// intrusive fragments
+if(t>2.5&&t<16.5&&t>nextF){const el=document.createElement('span');el.className='frag';el.textContent=words[(R()*words.length)|0];const a=R()*6.28,r=Rh*(2.5+R()*4.5);el.style.left=clamp(cx+Math.cos(a)*r*1.3,W*.12,W*.8)+'px';el.style.top=clamp(hy+Math.sin(a)*r,H*.1,H*.75)+'px';s.stage.appendChild(el);setTimeout(()=>el.remove(),3500);nextF=t+lerp(2.4,.9,c)}}
+
+/* ---------- Scene 3 : letting go ---------- */
+const clouds=Array.from({length:7},()=>({x:R(),y:.08+R()*.4,w:.18+R()*.25,sp:.004+R()*.008,o:.4+R()*.5}));
+const dust=Array.from({length:45},()=>({x:R(),y:R(),ph:R()*6.28,sp:.3+R()}));
+const K=[[[58,40,110],[190,80,130],[255,150,80]],[[30,25,80],[130,60,120],[230,110,90]],[[6,8,20],[18,16,36],[30,24,42]]];
+function s3(s,t){const x=s.x,W=s.W,H=s.H,hz=H*.64,cx=W/2,p=ease(clamp((t-1.5)/17));
+const kk=p<.6?K[0].map((c,i)=>mix(c,K[1][i],p/.6)):K[1].map((c,i)=>mix(c,K[2][i],(p-.6)/.4));
+let g=x.createLinearGradient(0,0,0,hz);g.addColorStop(0,rgb(kk[0]));g.addColorStop(.55,rgb(kk[1]));g.addColorStop(1,rgb(kk[2]));x.fillStyle=g;x.fillRect(0,0,W,hz+1);
+const Rs=Math.min(W,H)*.09,sy=lerp(hz-Rs*1.1,hz+Rs*1.5,p),sc=mix([255,215,150],[255,120,70],p),sa=1-p*.85;
+let sg=x.createRadialGradient(cx,sy,0,cx,sy,Rs*6);sg.addColorStop(0,rgb(sc,.55*sa));sg.addColorStop(.3,rgb(sc,.18*sa));sg.addColorStop(1,rgb(sc,0));x.fillStyle=sg;x.fillRect(0,0,W,hz);
+x.save();x.beginPath();x.rect(0,0,W,hz);x.clip();x.fillStyle=rgb(sc,sa);x.beginPath();x.arc(cx,sy,Rs,0,7);x.fill();x.restore();
+// clouds
+const tint=mix([255,150,130],[34,30,52],p);
+for(const c of clouds){const px=(((c.x+t*c.sp)%1.5)-.25)*W,py=c.y*H,w=c.w*W;for(let j=0;j<3;j++){x.save();x.translate(px+j*w*.35,py+j*4);x.scale(1,.16);let cg=x.createRadialGradient(0,0,0,0,0,w*.6);cg.addColorStop(0,rgb(tint,.42*c.o*(1-p*.4)));cg.addColorStop(1,rgb(tint,0));x.fillStyle=cg;x.beginPath();x.arc(0,0,w*.6,0,7);x.fill();x.restore()}}
+// sea
+let sg2=x.createLinearGradient(0,hz,0,H);sg2.addColorStop(0,rgb(kk[2].map(v=>v*.85)));sg2.addColorStop(1,rgb(kk[0].map(v=>v*.35)));x.fillStyle=sg2;x.fillRect(0,hz,W,H-hz);
+x.globalCompositeOperation='lighter';
+for(let y=hz+2;y<H;y+=3){const d=(y-hz)/(H-hz),wd=Rs*(1+d*2.6)*(.7+.3*Math.sin(y*.3+t*1.5)),off=Math.sin(y*.12+t*1.4)*d*26,a=.5*(1-d*.8)*sa*(.4+.6*Math.abs(Math.sin(y*.5+t*2)));
+if(sy<hz+Rs*1.4||p<1){x.fillStyle=rgb(sc,a*.6);x.fillRect(cx+off-wd/2,y,wd,2)}}
+x.fillStyle=rgb(mix([255,190,140],[120,110,150],p),.25*(1-p*.7));x.fillRect(0,hz,W,1.2);
+for(const d of dust){const px=((d.x*W+t*10*d.sp)%W),py=(d.y*H*.9+Math.sin(t*.4*d.sp+d.ph)*20),a=.25*(1-p*.6)*(.4+.6*Math.sin(t+d.ph)**2);x.fillStyle=rgb([255,215,180],a);x.beginPath();x.arc(px,py,1.2,0,7);x.fill()}
+x.globalCompositeOperation='source-over';
+// ending
+const bl=clamp((t-42)/5.5);document.getElementById('black').style.opacity=bl;document.getElementById('thanks').style.opacity=clamp((t-48)/3.5)*.6}
+
+const draw=[s1,s2,s3];
+function loop(){const now=performance.now();loop.l=loop.l||now;const dt=Math.min(.05,(now-loop.l)/1000);loop.l=now;
+for(const s of scenes){if(!s.vis)continue;s.t+=dt;s.x.clearRect(0,0,s.W,s.H);draw[s.i](s,s.t,dt);
+const c=cfg[s.i];while(s.shown<s.lines.length&&s.t>c.start+s.shown*c.step){s.lines[s.shown].classList.add('on');s.shown++}
+if(s.shown==s.lines.length&&s.t>c.start+s.lines.length*c.step+2)s.ready=true}
+hint();requestAnimationFrame(loop)}
+const hintEl=document.getElementById('hint');
+function hint(){const cur=Math.round(scrollY/innerHeight);hintEl.classList.toggle('on',cur<2&&!!scenes[cur]&&scenes[cur].ready)}
+function fadeScroll(){for(const s of scenes){const d=Math.abs(s.el.offsetTop-scrollY)/innerHeight;s.stage.style.opacity=clamp(1-d*1.25)}}
+addEventListener('scroll',fadeScroll,{passive:true});fadeScroll();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
