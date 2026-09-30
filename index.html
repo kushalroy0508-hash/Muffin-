@@ -10,8 +10,8 @@
 <style>
 :root{--ink:rgba(255,241,236,.92);box-sizing:border-box}
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-snap-type:y mandatory;background:#000;height:100%;overscroll-behavior:none}
-body{background:#000;color:var(--ink);font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;-webkit-font-smoothing:antialiased}
+html{touch-action:pan-y;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;scroll-snap-type:y mandatory;background:#000;height:100%;overscroll-behavior:none}
+body{overscroll-behavior:none;-webkit-user-select:none;user-select:none;background:#000;color:var(--ink);font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;-webkit-font-smoothing:antialiased}
 section{height:100vh;height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;position:relative;overflow:hidden}
 .stage{position:absolute;inset:0;will-change:opacity}
 canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -24,9 +24,16 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .frag{position:absolute;font-style:italic;font-size:clamp(.8rem,2.4vw,1.05rem);color:#c8c8d2;opacity:0;pointer-events:none;white-space:nowrap;animation:fr 3.4s ease-in-out forwards;letter-spacing:.05em}
 @keyframes fr{0%{opacity:0;filter:blur(4px)}35%{opacity:.26;filter:blur(.4px)}100%{opacity:0;filter:blur(5px)}}
 #black{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
-#thanks{position:absolute;left:0;right:0;bottom:calc(3.2vh + env(safe-area-inset-bottom,0px));text-align:center;font-style:italic;font-size:.72rem;letter-spacing:.14em;color:rgba(255,235,225,.6);opacity:0}
-#hint{position:fixed;left:50%;bottom:calc(2.4vh + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;transition:opacity 2s;pointer-events:none;z-index:5;font-style:italic;font-size:.66rem;letter-spacing:.3em;color:rgba(255,255,255,.45)}
-#hint.on{opacity:1}
+#finale{position:absolute;left:0;right:0;bottom:calc(16vh + env(safe-area-inset-bottom,0px));text-align:center;padding:0 8vw;pointer-events:none}
+#one,#thanks{position:absolute;left:0;right:0;bottom:0;padding:0 8vw;font-style:italic;font-weight:300;opacity:0;letter-spacing:.12em;color:rgba(255,235,225,.85)}
+#one{font-size:clamp(1rem,3.2vw,1.35rem)}
+#thanks{font-size:clamp(.8rem,2.6vw,1rem);line-height:1.8}
+#replay{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(3vh + env(safe-area-inset-bottom,0px));min-height:48px;padding:12px 22px;background:none;border:0;font:italic 300 .8rem 'Cormorant Garamond',Georgia,serif;letter-spacing:.2em;color:rgba(255,235,225,.75);opacity:0;pointer-events:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#replay:active{color:#fff}
+@media (hover:hover){#replay:hover{color:#fff}}
+#hint{cursor:pointer;padding:10px 24px;position:fixed;left:50%;bottom:calc(1.4vh + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;transition:opacity 2s;pointer-events:none;z-index:5;-webkit-tap-highlight-color:transparent;font-style:italic;font-size:.66rem;letter-spacing:.3em;color:rgba(255,255,255,.45)}
+#hint.on{opacity:1;pointer-events:auto}
+@media (pointer:coarse){#grain{animation:none}}
 #hint i{display:block;width:1px;height:34px;background:linear-gradient(rgba(255,255,255,.55),transparent);animation:dr 2.6s ease-in-out infinite;transform-origin:top}
 @keyframes dr{0%{transform:scaleY(0);opacity:0}40%{opacity:1}100%{transform:scaleY(1);opacity:0}}
 #grain{position:fixed;inset:-50%;width:200%;height:200%;pointer-events:none;z-index:4;opacity:.11;mix-blend-mode:overlay;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");animation:gr 1.2s steps(6) infinite}
@@ -42,7 +49,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 
 <section id="s3"><div class="stage"><canvas></canvas>
 <div class="msg top"><p>The sun never leaves the sky out of anger.</p><p>It only knows the hour it was given.</p><p>Some lights are not put out,<br>they are only carried elsewhere.</p><p>So I open my hands,<br>and let the evening take<br>what I could never keep.</p><p>Go gently, wherever your morning finds you.</p></div>
-<div id="black"></div><div id="thanks">Thank you for being a beautiful part of my life.</div></div></section>
+<div id="black"></div><div id="finale"><div id="one">One last thing…</div><div id="thanks">Thank you for being a beautiful part of my life.</div></div>
+<button id="replay" type="button">↻ Experience it again</button></div></section>
 
 <div id="hint"><span>SCROLL</span><i></i></div>
 <div id="grain"></div>
@@ -52,8 +60,9 @@ const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),lerp=(a,b,t)=>a+(b-a)*t,ease=
 const mix=(A,B,t)=>A.map((v,i)=>lerp(v,B[i],t)),rgb=(c,a=1)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
 const scenes=[...document.querySelectorAll('section')].map((el,i)=>{const c=el.querySelector('canvas');return{el,c,x:c.getContext('2d'),i,t:0,vis:false,W:0,H:0,lines:[...el.querySelectorAll('.msg p')],shown:0,ready:false,stage:el.querySelector('.stage')}});
 const cfg=[{start:13.5,step:1.9},{start:23,step:2.6},{start:19,step:3.3}];
-function resize(){for(const s of scenes){const d=Math.min(devicePixelRatio||1,2);s.W=innerWidth;s.H=innerHeight;s.c.width=s.W*d;s.c.height=s.H*d;s.x.setTransform(d,0,0,d,0,0)}}
-addEventListener('resize',resize);resize();
+function resize(){for(const s of scenes){const d=Math.min(devicePixelRatio||1,matchMedia('(pointer:coarse)').matches?1.5:2);s.W=innerWidth;s.H=innerHeight;s.c.width=s.W*d;s.c.height=s.H*d;s.x.setTransform(d,0,0,d,0,0)}}
+let lw=innerWidth,lh=innerHeight;resize();
+addEventListener('resize',()=>{if(innerWidth===lw&&Math.abs(innerHeight-lh)<140)return;lw=innerWidth;lh=innerHeight;resize()});
 new IntersectionObserver(es=>es.forEach(e=>{scenes[[...document.querySelectorAll('section')].indexOf(e.target)].vis=e.isIntersecting&&e.intersectionRatio>.5}),{threshold:[.5]}).observe&&0;
 const io=new IntersectionObserver(es=>es.forEach(e=>{const s=scenes.find(q=>q.el===e.target);s.vis=e.intersectionRatio>.45}),{threshold:[0,.45,1]});
 scenes.forEach(s=>io.observe(s.el));
@@ -139,10 +148,19 @@ x.fillStyle=rgb(mix([255,190,140],[120,110,150],p),.25*(1-p*.7));x.fillRect(0,hz
 for(const d of dust){const px=((d.x*W+t*10*d.sp)%W),py=(d.y*H*.9+Math.sin(t*.4*d.sp+d.ph)*20),a=.25*(1-p*.6)*(.4+.6*Math.sin(t+d.ph)**2);x.fillStyle=rgb([255,215,180],a);x.beginPath();x.arc(px,py,1.2,0,7);x.fill()}
 x.globalCompositeOperation='source-over';
 // ending
-const bl=clamp((t-42)/5.5);document.getElementById('black').style.opacity=bl;document.getElementById('thanks').style.opacity=clamp((t-48)/3.5)*.6}
+const o=(a,d)=>clamp((t-a)/d),$=id=>document.getElementById(id);
+$('black').style.opacity=o(42,5.5);
+$('one').style.opacity=o(49,2.5)*(1-o(53,1.8));
+$('thanks').style.opacity=o(54.5,3.5)*.85;
+const rv=o(61,3)*.7,rb=$('replay');rb.style.opacity=rv;rb.style.pointerEvents=rv>.3?'auto':'none'}
 
 const draw=[s1,s2,s3];
+let replaying=false;
+function doReset(){scenes.forEach(s=>{s.t=0;s.shown=0;s.ready=false;s.lines.forEach(p=>p.classList.remove('on'))});T2=0;nextF=3;document.querySelectorAll('.frag').forEach(e=>e.remove());['black','one','thanks','replay'].forEach(id=>{const e=document.getElementById(id);e.style.opacity=0;e.style.pointerEvents='none'})}
+document.getElementById('replay').addEventListener('click',()=>{replaying=true;document.getElementById('replay').style.opacity=0;document.getElementById('replay').style.pointerEvents='none';scrollTo({top:0,behavior:'smooth'})});
+document.getElementById('hint').addEventListener('click',()=>scrollTo({top:(Math.round(scrollY/innerHeight)+1)*innerHeight,behavior:'smooth'}));
 function loop(){const now=performance.now();loop.l=loop.l||now;const dt=Math.min(.05,(now-loop.l)/1000);loop.l=now;
+if(replaying){if(scrollY<4){doReset();replaying=false}requestAnimationFrame(loop);return}
 for(const s of scenes){if(!s.vis)continue;s.t+=dt;s.x.clearRect(0,0,s.W,s.H);draw[s.i](s,s.t,dt);
 const c=cfg[s.i];while(s.shown<s.lines.length&&s.t>c.start+s.shown*c.step){s.lines[s.shown].classList.add('on');s.shown++}
 if(s.shown==s.lines.length&&s.t>c.start+s.lines.length*c.step+2)s.ready=true}
